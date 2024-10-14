@@ -1,0 +1,12 @@
+# Archivos de build
+bin/
+obj/
+
+# Archivos de usuario
+*.user
+*.suo
+
+# Configuración de Visual Studio
+.vs/
+
+

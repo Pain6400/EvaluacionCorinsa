@@ -1,0 +1,37 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\Kevin\\OneDrive\\Documentos\\GitHub\\EvaluacionCorinsa\\Evaluacion\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{F51DE36D-448F-4A0E-9731-6D911B1A9AAC}|Evaluacion\\Evaluacion.csproj|c:\\users\\kevin\\onedrive\\documentos\\github\\evaluacioncorinsa\\evaluacion\\evaluacion\\controllers\\weatherforecastcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F51DE36D-448F-4A0E-9731-6D911B1A9AAC}|Evaluacion\\Evaluacion.csproj|solutionrelative:evaluacion\\controllers\\weatherforecastcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "WeatherForecastController.cs",
+              "DocumentMoniker": "C:\\Users\\Kevin\\OneDrive\\Documentos\\GitHub\\EvaluacionCorinsa\\Evaluacion\\Evaluacion\\Controllers\\WeatherForecastController.cs",
+              "RelativeDocumentMoniker": "Evaluacion\\Controllers\\WeatherForecastController.cs",
+              "ToolTip": "C:\\Users\\Kevin\\OneDrive\\Documentos\\GitHub\\EvaluacionCorinsa\\Evaluacion\\Evaluacion\\Controllers\\WeatherForecastController.cs",
+              "RelativeToolTip": "Evaluacion\\Controllers\\WeatherForecastController.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABYAAAAJAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2024-10-14T21:04:15.421Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
