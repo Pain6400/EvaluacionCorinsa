@@ -1,4 +1,13 @@
+# Archivos de build
+bin/
+obj/
 
-*.vsidx
-*.vsidx
-Evaluacion/.vs/Evaluacion/v17/.suo
+# Archivos de usuario
+*.user
+*.suo
+*.db
+*.log
+
+# Configuración de Visual Studio
+.vs/
+
