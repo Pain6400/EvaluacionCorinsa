@@ -5,6 +5,8 @@ obj/
 # Archivos de usuario
 *.user
 *.suo
+*.db
+*.log
 
 # Configuración de Visual Studio
 .vs/
