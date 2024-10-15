@@ -3,6 +3,7 @@ using System;
 using EvaluacionApi.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace EvaluacionApi.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20241015194054_FixUsuarioIdInSolicitudes")]
+    partial class FixUsuarioIdInSolicitudes
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -167,9 +170,6 @@ namespace EvaluacionApi.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<DateTime>("FechaCreacion")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("FechaRespuesta")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Observaciones")

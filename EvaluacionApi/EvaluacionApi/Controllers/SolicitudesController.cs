@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using System.Threading.Tasks;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Identity;
+using static QRCoder.PayloadGenerator;
 
 namespace EvaluacionApi.Controllers
 {
@@ -17,11 +19,13 @@ namespace EvaluacionApi.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly IAuthorizationService _authorizationService;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        public SolicitudesController(ApplicationDbContext context, IAuthorizationService authorizationService)
+        public SolicitudesController(ApplicationDbContext context, IAuthorizationService authorizationService, UserManager<ApplicationUser> userManager)
         {
             _context = context;
             _authorizationService = authorizationService;
+            _userManager = userManager;
         }
 
         // GET: api/Solicitudes
@@ -54,37 +58,84 @@ namespace EvaluacionApi.Controllers
                 return BadRequest(ModelState);
             }
 
+            // Obtener el UserId desde los claims
+            var email = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (email == null)
+            {
+                return Unauthorized("Usuario no autenticado.");
+            }
+
+            var user = await _userManager.FindByEmailAsync(email);
+
+            if (user == null)
+            {
+                return Unauthorized("Usuario no Existe.");
+            }
+
+            // Verificar que ZonaId y TipoSolicitudId existen
+            var zonaExists = await _context.Zones.AnyAsync(z => z.Id == model.ZonaId);
+            if (!zonaExists)
+            {
+                return BadRequest("Zona inválida.");
+            }
+
+            var tipoSolicitudExists = await _context.RequestTypes.AnyAsync(rt => rt.Id == model.TipoSolicitudId);
+            if (!tipoSolicitudExists)
+            {
+                return BadRequest("Tipo de solicitud inválido.");
+            }
+
+            // Crear la solicitud con el UserId correcto
             var solicitud = new Solicitud
             {
                 TipoSolicitudId = model.TipoSolicitudId,
                 ZonaId = model.ZonaId,
                 Observaciones = model.Observaciones,
-                UsuarioId = User.FindFirstValue(ClaimTypes.NameIdentifier),
+                UsuarioId = user.Id, // Asignar el GUID del usuario
                 FechaCreacion = DateTime.UtcNow,
                 Aprobada = false
             };
 
-            _context.Solicitudes.Add(solicitud);
+             _context.Solicitudes.Add(solicitud);
             await _context.SaveChangesAsync();
 
             return CreatedAtAction(nameof(GetSolicitud), new { id = solicitud.Id }, solicitud);
         }
 
+
+        [HttpPost("{id}/aprobar")]
+        [Authorize(Policy = "SupervisorPolicy")]
+        public async Task<IActionResult> AprobarSolicitud(int id)
+        {
+            var solicitud = await _context.Solicitudes.FindAsync(id);
+
+            if (solicitud == null)
+            {
+                return NotFound();
+            }
+
+            // Verificar si la solicitud se está respondiendo dentro de las 24 horas
+            if (solicitud.FechaCreacion.AddHours(24) < DateTime.UtcNow)
+            {
+                return BadRequest("La solicitud ha excedido el tiempo límite de respuesta.");
+            }
+
+            solicitud.Aprobada = true;
+            solicitud.FechaRespuesta = DateTime.UtcNow; // Guardar la fecha de la respuesta
+
+            await _context.SaveChangesAsync();
+            return Ok(solicitud);
+        }
+
         // POST: api/Solicitudes/Approve/5
         [HttpPost("Approve/{id}")]
+        [Authorize(Policy = "SupervisorPolicy")]
         public async Task<IActionResult> ApproveSolicitud(int id)
         {
             var solicitud = await _context.Solicitudes.FindAsync(id);
             if (solicitud == null)
             {
                 return NotFound();
-            }
-
-            // Autorizar al usuario como Supervisor con privilegios en la zona y tipo de solicitud de esta solicitud
-            var authorizationResult = await _authorizationService.AuthorizeAsync(User, solicitud, "SupervisorPolicy");
-            if (!authorizationResult.Succeeded)
-            {
-                return Forbid();
             }
 
             // Aprobar la solicitud
@@ -95,29 +146,28 @@ namespace EvaluacionApi.Controllers
             return Ok("Solicitud aprobada.");
         }
 
-        // POST: api/Solicitudes/Reject/5
-        [HttpPost("Reject/{id}")]
-        public async Task<IActionResult> RejectSolicitud(int id)
+        [HttpPost("{id}/rechazar")]
+        [Authorize(Policy = "SupervisorPolicy")]
+        public async Task<IActionResult> RechazarSolicitud(int id)
         {
             var solicitud = await _context.Solicitudes.FindAsync(id);
+
             if (solicitud == null)
             {
                 return NotFound();
             }
 
-            // Autorizar al usuario como Supervisor con privilegios en la zona y tipo de solicitud de esta solicitud
-            var authorizationResult = await _authorizationService.AuthorizeAsync(User, solicitud, "SupervisorPolicy");
-            if (!authorizationResult.Succeeded)
+            // Verificar si la solicitud se está respondiendo dentro de las 24 horas
+            if (solicitud.FechaCreacion.AddHours(24) < DateTime.UtcNow)
             {
-                return Forbid();
+                return BadRequest("La solicitud ha excedido el tiempo límite de respuesta.");
             }
 
-            // Rechazar la solicitud
             solicitud.Aprobada = false;
-            _context.Solicitudes.Update(solicitud);
-            await _context.SaveChangesAsync();
+            solicitud.FechaRespuesta = DateTime.UtcNow; // Guardar la fecha de la respuesta
 
-            return Ok("Solicitud rechazada.");
+            await _context.SaveChangesAsync();
+            return Ok(solicitud);
         }
     }
 }

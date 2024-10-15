@@ -86,5 +86,33 @@ namespace EvaluacionApi.Controllers
 
             return Ok("Supervisor asignado correctamente a las zonas y tipos de solicitud.");
         }
+
+        // POST: api/Admin/AssignRole
+        [HttpPost("AssignRole")]
+        public async Task<IActionResult> AssignRole([FromBody] AssignRoleViewModel model)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var user = await _userManager.FindByEmailAsync(model.Email);
+            if (user == null)
+                return NotFound("Usuario no encontrado.");
+
+            // Verificar si el rol existe
+            var roleExists = await _userManager.IsInRoleAsync(user, model.Role);
+            if (roleExists)
+                return BadRequest("El usuario ya tiene asignado este rol.");
+
+            var result = await _userManager.AddToRoleAsync(user, model.Role);
+            if (result.Succeeded)
+                return Ok("Rol asignado correctamente.");
+
+            // Si ocurre algún error, retornar los detalles
+            foreach (var error in result.Errors)
+            {
+                ModelState.AddModelError(string.Empty, error.Description);
+            }
+            return BadRequest(ModelState);
+        }
     }
 }

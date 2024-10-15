@@ -26,5 +26,7 @@ namespace EvaluacionApi.Models
         public DateTime FechaCreacion { get; set; }
 
         public bool Aprobada { get; set; }
+
+        public DateTime? FechaRespuesta { get; set; } // Nueva propiedad
     }
 }
