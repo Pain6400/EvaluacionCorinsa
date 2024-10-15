@@ -12,5 +12,9 @@ namespace EvaluacionApi.Models
 
         // Propiedad para almacenar la clave secreta de TOTP
         public string TOTPSecret { get; set; }
+
+        // Relaciones
+        public ICollection<ApplicationUserZone> ApplicationUserZones { get; set; }
+        public ICollection<ApplicationUserRequestType> ApplicationUserRequestTypes { get; set; }
     }
 }

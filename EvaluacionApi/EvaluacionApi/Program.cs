@@ -1,8 +1,8 @@
 using EvaluacionApi.Data;
 using EvaluacionApi.Models;
-using EvaluacionApi.Data;
-using EvaluacionApi.Models;
+using EvaluacionApi.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -13,6 +13,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Configurar la cadena de conexión
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
 
 // Configurar Identity
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
@@ -54,6 +55,16 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
+// Configurar la autorización
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("SupervisorPolicy", policy =>
+        policy.Requirements.Add(new SupervisorAuthorizationRequirement()));
+});
+
+// Registrar el handler
+builder.Services.AddTransient<IAuthorizationHandler, SupervisorAuthorizationHandler>();
+
 builder.Services.AddControllers();
 
 // Configurar Swagger con soporte para autenticación JWT
@@ -85,6 +96,7 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
+
 // Configurar el middleware
 if (app.Environment.IsDevelopment())
 {
@@ -98,5 +110,22 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Inicializar roles y datos
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        // Asegúrate de que los métodos InitializeAsync y SeedDataAsync sean asíncronos
+        await RoleInitializer.InitializeAsync(services);
+        await DataSeeder.SeedDataAsync(services); // Ejecutará el seed
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "An error occurred while seeding the database.");
+    }
+}
 
 app.Run();
