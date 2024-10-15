@@ -103,8 +103,8 @@ namespace EvaluacionApi.Controllers
         }
 
 
-        [HttpPost("{id}/aprobar")]
-        [Authorize(Policy = "SupervisorPolicy")]
+        [HttpPost("Aprobar/{id}")]
+        [Authorize(Roles = "Supervisor,Administrator")]
         public async Task<IActionResult> AprobarSolicitud(int id)
         {
             var solicitud = await _context.Solicitudes.FindAsync(id);
@@ -127,27 +127,8 @@ namespace EvaluacionApi.Controllers
             return Ok(solicitud);
         }
 
-        // POST: api/Solicitudes/Approve/5
-        [HttpPost("Approve/{id}")]
-        [Authorize(Policy = "SupervisorPolicy")]
-        public async Task<IActionResult> ApproveSolicitud(int id)
-        {
-            var solicitud = await _context.Solicitudes.FindAsync(id);
-            if (solicitud == null)
-            {
-                return NotFound();
-            }
-
-            // Aprobar la solicitud
-            solicitud.Aprobada = true;
-            _context.Solicitudes.Update(solicitud);
-            await _context.SaveChangesAsync();
-
-            return Ok("Solicitud aprobada.");
-        }
-
-        [HttpPost("{id}/rechazar")]
-        [Authorize(Policy = "SupervisorPolicy")]
+        [HttpPost("Rechazar/{id}")]
+        [Authorize(Roles = "Supervisor,Administrator")]
         public async Task<IActionResult> RechazarSolicitud(int id)
         {
             var solicitud = await _context.Solicitudes.FindAsync(id);

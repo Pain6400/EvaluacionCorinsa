@@ -137,28 +137,45 @@ namespace EvaluacionApi.Controllers
             }
         }
 
-        private string GenerateJwtToken(ApplicationUser user)
+        public string GenerateJwtToken(ApplicationUser user)
         {
             var jwtSettings = _configuration.GetSection("JwtSettings");
-            var key = Encoding.ASCII.GetBytes(jwtSettings["Secret"]);
+            var key = Encoding.UTF8.GetBytes(jwtSettings["Secret"]);
 
-            var tokenDescriptor = new SecurityTokenDescriptor
+            // Obtener los roles del usuario
+            var roles = _userManager.GetRolesAsync(user).Result;
+
+            // Crear los claims
+            var claims = new List<Claim>
+    {
+        new Claim(ClaimTypes.NameIdentifier, user.Id), // Asegúrate de que esto es el Id
+        new Claim(ClaimTypes.Email, user.Email),
+        new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+    };
+
+            // Agregar los roles como claims
+            foreach (var role in roles)
             {
-                Subject = new ClaimsIdentity(new[]
-                {
-                    new Claim(JwtRegisteredClaimNames.Sub, user.Email),
-                    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                    new Claim(ClaimTypes.NameIdentifier, user.Id)
-                }),
-                Expires = DateTime.UtcNow.AddMinutes(Convert.ToDouble(jwtSettings["ExpirationInMinutes"])),
-                Issuer = jwtSettings["Issuer"],
-                Audience = jwtSettings["Audience"],
-                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
-            };
+                claims.Add(new Claim(ClaimTypes.Role, role));
+            }
 
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var token = tokenHandler.CreateToken(tokenDescriptor);
-            return tokenHandler.WriteToken(token);
+            // Crear la clave de seguridad
+            var signingKey = new SymmetricSecurityKey(key);
+
+            // Crear las credenciales de firma
+            var signingCredentials = new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256);
+
+            // Crear el token
+            var token = new JwtSecurityToken(
+                issuer: jwtSettings["Issuer"],
+                audience: jwtSettings["Audience"],
+                claims: claims,
+                expires: DateTime.UtcNow.AddMinutes(Convert.ToDouble(jwtSettings["ExpirationInMinutes"])),
+                signingCredentials: signingCredentials
+            );
+
+            // Devolver el token en formato string
+            return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
         // POST: api/Auth/Verify2FA
