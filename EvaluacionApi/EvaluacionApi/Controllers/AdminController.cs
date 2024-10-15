@@ -12,7 +12,7 @@ namespace EvaluacionApi.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    //[Authorize(Roles = "Administrator")] // Solo Administradores pueden acceder
+    [Authorize(Roles = "Administrator")] // Solo Administradores pueden acceder
     public class AdminController : ControllerBase
     {
         private readonly UserManager<ApplicationUser> _userManager;
