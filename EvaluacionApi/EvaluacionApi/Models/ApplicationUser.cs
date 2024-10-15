@@ -8,7 +8,7 @@ namespace EvaluacionApi.Models
         public string Apellidos { get; set; }
         public DateTime FechaNacimiento { get; set; }
         public string Genero { get; set; }
-        public string FotografiaUrl { get; set; }
+        public string? FotografiaUrl { get; set; }
 
         // Propiedad para almacenar la clave secreta de TOTP
         public string TOTPSecret { get; set; }

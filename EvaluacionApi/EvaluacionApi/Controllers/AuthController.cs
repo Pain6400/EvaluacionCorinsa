@@ -15,7 +15,7 @@ using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace GestionSolicitudesAPI.Controllers
+namespace EvaluacionApi.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
@@ -36,90 +36,105 @@ namespace GestionSolicitudesAPI.Controllers
         [HttpPost("Register")]
         public async Task<IActionResult> Register([FromBody] RegisterViewModel model)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
-            var user = new ApplicationUser
+            try
             {
-                UserName = model.Email,
-                Email = model.Email,
-                Nombres = model.Nombres,
-                Apellidos = model.Apellidos,
-                FechaNacimiento = model.FechaNacimiento,
-                Genero = model.Genero
-                // FotografiaUrl se puede agregar posteriormente
-            };
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
 
-            var result = await _userManager.CreateAsync(user, model.Password);
+                // Generar clave secreta para TOTP
+                var secret = KeyGeneration.GenerateRandomKey(20);
+                var TOTPSecret = Base32Encoding.ToString(secret);
 
-            if (!result.Succeeded)
-            {
-                foreach (var error in result.Errors)
+                var user = new ApplicationUser
                 {
-                    ModelState.AddModelError(string.Empty, error.Description);
+                    UserName = model.Email,
+                    Email = model.Email,
+                    Nombres = model.Nombres,
+                    Apellidos = model.Apellidos,
+                    FechaNacimiento = model.FechaNacimiento.ToUniversalTime(),
+                    Genero = model.Genero,
+                    FotografiaUrl = "https://tu-dominio.com/images/default-profile.png", // Asigna una URL predeterminada
+                    TOTPSecret = TOTPSecret,
+                    // Habilitar 2FA
+                    TwoFactorEnabled = true
+                };
+
+                var result = await _userManager.CreateAsync(user, model.Password);
+
+                if (!result.Succeeded)
+                {
+                    foreach (var error in result.Errors)
+                    {
+                        ModelState.AddModelError(string.Empty, error.Description);
+                    }
+                    return BadRequest(ModelState);
                 }
-                return BadRequest(ModelState);
+
+                // Generar código QR para que el usuario configure su autenticador
+                var totp = new Totp(secret);
+                var uri = $"otpauth://totp/EvaluacionApi:{user.Email}?secret={user.TOTPSecret}&issuer=EvaluacionApi";
+
+                using var qrGenerator = new QRCodeGenerator();
+                using var qrCodeData = qrGenerator.CreateQrCode(uri, QRCodeGenerator.ECCLevel.Q);
+                using var qrCode = new PngByteQRCode(qrCodeData);
+                var qrCodeImage = qrCode.GetGraphic(20);
+
+                var qrCodeBase64 = Convert.ToBase64String(qrCodeImage);
+
+                return Ok(new
+                {
+                    Message = "Usuario creado exitosamente. Escanea el siguiente QR con tu aplicación de autenticación.",
+                    QrCodeImage = qrCodeBase64
+                });
             }
-
-            // Generar clave secreta para TOTP
-            var secret = KeyGeneration.GenerateRandomKey(20);
-            user.TOTPSecret = Base32Encoding.ToString(secret);
-            await _userManager.UpdateAsync(user);
-
-            // Generar código QR para que el usuario configure su autenticador
-            var totp = new Totp(secret);
-            var uri = $"otpauth://totp/GestionSolicitudes:{user.Email}?secret={user.TOTPSecret}&issuer=GestionSolicitudes";
-
-            using var qrGenerator = new QRCodeGenerator();
-            using var qrCodeData = qrGenerator.CreateQrCode(uri, QRCodeGenerator.ECCLevel.Q);
-            using var qrCode = new PngByteQRCode(qrCodeData);
-            var qrCodeImage = qrCode.GetGraphic(20);
-
-            var qrCodeBase64 = Convert.ToBase64String(qrCodeImage);
-
-            return Ok(new
+            catch (Exception ex)
             {
-                Message = "Usuario creado exitosamente. Escanea el siguiente QR con tu aplicación de autenticación.",
-                QrCodeImage = qrCodeBase64
-            });
+                return StatusCode(500, ex.InnerException?.Message ?? ex.Message);
+            }
         }
+
 
         // POST: api/Auth/Login
         [HttpPost("Login")]
         public async Task<IActionResult> Login([FromBody] LoginViewModel model)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
-            var user = await _userManager.FindByEmailAsync(model.Email);
-            if (user == null)
-                return Unauthorized("Usuario o contraseña inválidos.");
-
-            var result = await _signInManager.CheckPasswordSignInAsync(user, model.Password, false);
-            if (!result.Succeeded)
-                return Unauthorized("Usuario o contraseña inválidos.");
-
-            if (user.TwoFactorEnabled)
+            try
             {
-                // Aquí podrías implementar la lógica para solicitar el código 2FA
-                // Por simplicidad, asumiremos que el usuario envía el código en el mismo request
-                if (string.IsNullOrEmpty(model.TOTPCode))
-                    return BadRequest("Se requiere el código de autenticación de doble factor.");
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
 
-                var totp = new Totp(Base32Encoding.ToBytes(user.TOTPSecret));
-                var isValid = totp.VerifyTotp(model.TOTPCode, out long timeStepMatched, VerificationWindow.RfcSpecifiedNetworkDelay);
+                var user = await _userManager.FindByEmailAsync(model.Email);
+                if (user == null)
+                    return Unauthorized("Usuario o contraseña inválidos.");
 
-                if (!isValid)
-                    return Unauthorized("Código de autenticación de doble factor inválido.");
+                var passwordValid = await _userManager.CheckPasswordAsync(user, model.Password);
+                if (!passwordValid)
+                    return Unauthorized("Usuario o contraseña inválidos.");
+
+                if (user.TwoFactorEnabled)
+                {
+                    if (string.IsNullOrEmpty(model.TOTPCode))
+                        return BadRequest("Se requiere el código de autenticación de doble factor.");
+
+                    var totp = new Totp(Base32Encoding.ToBytes(user.TOTPSecret));
+                    var isValid = totp.VerifyTotp(model.TOTPCode, out long timeStepMatched, VerificationWindow.RfcSpecifiedNetworkDelay);
+
+                    if (!isValid)
+                        return Unauthorized("Código de autenticación de doble factor inválido.");
+                }
+
+                // Generar JWT
+                var token = GenerateJwtToken(user);
+
+                return Ok(new
+                {
+                    Token = token
+                });
             }
-
-            // Generar JWT
-            var token = GenerateJwtToken(user);
-
-            return Ok(new
+            catch (Exception ex)
             {
-                Token = token
-            });
+                return StatusCode(500, ex.InnerException?.Message ?? ex.Message);
+            }
         }
 
         private string GenerateJwtToken(ApplicationUser user)
