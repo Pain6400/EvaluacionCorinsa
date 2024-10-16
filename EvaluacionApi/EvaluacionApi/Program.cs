@@ -67,6 +67,16 @@ builder.Services.AddTransient<IAuthorizationHandler, SupervisorAuthorizationHand
 
 builder.Services.AddControllers();
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", builder =>
+    {
+        builder.AllowAnyOrigin()
+               .AllowAnyMethod()
+               .AllowAnyHeader();
+    });
+});
+
 // Configurar Swagger con soporte para autenticación JWT
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
@@ -96,7 +106,8 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
-
+// Configurar Middleware
+app.UseCors("AllowAll");
 // Configurar el middleware
 if (app.Environment.IsDevelopment())
 {
