@@ -137,47 +137,6 @@ namespace EvaluacionApi.Controllers
             }
         }
 
-        public string GenerateJwtToken(ApplicationUser user)
-        {
-            var jwtSettings = _configuration.GetSection("JwtSettings");
-            var key = Encoding.UTF8.GetBytes(jwtSettings["Secret"]);
-
-            // Obtener los roles del usuario
-            var roles = _userManager.GetRolesAsync(user).Result;
-
-            // Crear los claims
-            var claims = new List<Claim>
-    {
-        new Claim(ClaimTypes.NameIdentifier, user.Id), // Asegúrate de que esto es el Id
-        new Claim(ClaimTypes.Email, user.Email),
-        new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-    };
-
-            // Agregar los roles como claims
-            foreach (var role in roles)
-            {
-                claims.Add(new Claim(ClaimTypes.Role, role));
-            }
-
-            // Crear la clave de seguridad
-            var signingKey = new SymmetricSecurityKey(key);
-
-            // Crear las credenciales de firma
-            var signingCredentials = new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256);
-
-            // Crear el token
-            var token = new JwtSecurityToken(
-                issuer: jwtSettings["Issuer"],
-                audience: jwtSettings["Audience"],
-                claims: claims,
-                expires: DateTime.UtcNow.AddMinutes(Convert.ToDouble(jwtSettings["ExpirationInMinutes"])),
-                signingCredentials: signingCredentials
-            );
-
-            // Devolver el token en formato string
-            return new JwtSecurityTokenHandler().WriteToken(token);
-        }
-
         // POST: api/Auth/Verify2FA
         [HttpPost("Verify2FA")]
         public async Task<IActionResult> Verify2FA([FromBody] Verify2FAViewModel model)
@@ -209,6 +168,47 @@ namespace EvaluacionApi.Controllers
             {
                 Token = token
             });
+        }
+
+        private string GenerateJwtToken(ApplicationUser user)
+        {
+            var jwtSettings = _configuration.GetSection("JwtSettings");
+            var key = Encoding.UTF8.GetBytes(jwtSettings["Secret"]);
+
+            // Obtener los roles del usuario
+            var roles = _userManager.GetRolesAsync(user).Result;
+
+            // Crear los claims
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.NameIdentifier, user.Id), // Asegúrate de que esto es el Id
+                new Claim(ClaimTypes.Email, user.Email),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            };
+
+            // Agregar los roles como claims
+            foreach (var role in roles)
+            {
+                claims.Add(new Claim(ClaimTypes.Role, role));
+            }
+
+            // Crear la clave de seguridad
+            var signingKey = new SymmetricSecurityKey(key);
+
+            // Crear las credenciales de firma
+            var signingCredentials = new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256);
+
+            // Crear el token
+            var token = new JwtSecurityToken(
+                issuer: jwtSettings["Issuer"],
+                audience: jwtSettings["Audience"],
+                claims: claims,
+                expires: DateTime.UtcNow.AddMinutes(Convert.ToDouble(jwtSettings["ExpirationInMinutes"])),
+                signingCredentials: signingCredentials
+            );
+
+            // Devolver el token en formato string
+            return new JwtSecurityTokenHandler().WriteToken(token);
         }
     }
 }

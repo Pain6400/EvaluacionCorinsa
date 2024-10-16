@@ -96,7 +96,7 @@ namespace EvaluacionApi.Controllers
                 Aprobada = false
             };
 
-             _context.Solicitudes.Add(solicitud);
+            _context.Solicitudes.Add(solicitud);
             await _context.SaveChangesAsync();
 
             return CreatedAtAction(nameof(GetSolicitud), new { id = solicitud.Id }, solicitud);
