@@ -9,5 +9,5 @@ RUN dotnet restore "EvaluacionApi/EvaluacionApi.csproj"
 COPY ./EvaluacionApi/. ./EvaluacionApi/
 WORKDIR "/src/EvaluacionApi"
 # Elimina la carpeta de salida si existe
-RUN rm -rf /app/build
-RUN dotnet build "EvaluacionApi.csproj" -c Release -o /app/build
+RUN rm -rf /app/output
+RUN dotnet build "EvaluacionApi.csproj" -c Release -o /app/output
