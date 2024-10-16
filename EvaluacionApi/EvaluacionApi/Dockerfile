@@ -1,20 +1,29 @@
-# Usa la imagen oficial de .NET Core para la fase de ejecuci髇
-FROM mcr.microsoft.com/dotnet/aspnet:6.0 AS base
+# Consulte https://aka.ms/customizecontainer para aprender a personalizar su contenedor de depuraci贸n y c贸mo Visual Studio usa este Dockerfile para compilar sus im谩genes para una depuraci贸n m谩s r谩pida.
+
+# Esta fase se usa cuando se ejecuta desde VS en modo r谩pido (valor predeterminado para la configuraci贸n de depuraci贸n)
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
+USER app
 WORKDIR /app
-EXPOSE 80
+EXPOSE 8080
+EXPOSE 8081
 
-# Usa la imagen oficial de .NET Core para la fase de compilaci髇
-FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
+
+# Esta fase se usa para compilar el proyecto de servicio
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["EvaluacionApi.csproj", "./"]
-RUN dotnet restore "./EvaluacionApi.csproj"
+COPY ["EvaluacionApi/EvaluacionApi.csproj", "EvaluacionApi/"]
+RUN dotnet restore "./EvaluacionApi/EvaluacionApi.csproj"
 COPY . .
-WORKDIR "/src/."
-RUN dotnet build "EvaluacionApi.csproj" -c Release -o /app/build
+WORKDIR "/src/EvaluacionApi"
+RUN dotnet build "./EvaluacionApi.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
+# Esta fase se usa para publicar el proyecto de servicio que se copiar谩 en la fase final.
 FROM build AS publish
-RUN dotnet publish "EvaluacionApi.csproj" -c Release -o /app/publish
+ARG BUILD_CONFIGURATION=Release
+RUN dotnet publish "./EvaluacionApi.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
+# Esta fase se usa en producci贸n o cuando se ejecuta desde VS en modo normal (valor predeterminado cuando no se usa la configuraci贸n de depuraci贸n)
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
