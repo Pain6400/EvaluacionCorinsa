@@ -143,5 +143,35 @@ namespace EvaluacionApi.Controllers
             await _context.SaveChangesAsync();
             return Ok(solicitud);
         }
+
+        [HttpPut("Actualizar/{id}")]
+        public async Task<IActionResult> UpdateSolicitud(int id, [FromBody] UpdateSolicitudViewModel model)
+        {
+            try
+            {
+                // Buscar la solicitud existente
+                var solicitud = await _context.Solicitudes.FindAsync(id);
+                if (solicitud == null)
+                {
+                    return NotFound("Solicitud no encontrada.");
+                }
+
+                // Actualizar los datos de la solicitud con los valores del modelo
+                solicitud.ZonaId = model.ZonaId;
+                solicitud.TipoSolicitudId = model.TipoSolicitudId;
+                solicitud.Observaciones = model.Observaciones;
+                solicitud.Aprobada = model.Aprobada;
+                solicitud.FechaRespuesta = DateTime.UtcNow; // Ejemplo: actualizar la fecha de respuesta
+
+                // Guardar los cambios en la base de datos
+                await _context.SaveChangesAsync();
+
+                return Ok(solicitud);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, "Ocurrió un error al actualizar la solicitud.");
+            }
+        }
     }
 }
