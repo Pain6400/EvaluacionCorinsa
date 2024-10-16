@@ -21,6 +21,7 @@ namespace EvaluacionApi.Controllers
 
         // GET: api/Profile
         [HttpGet]
+        [Authorize(Roles = "Supervisor,Administrator")]
         public async Task<IActionResult> GetProfile()
         {
             try
@@ -55,6 +56,7 @@ namespace EvaluacionApi.Controllers
 
         // PUT: api/Profile
         [HttpPut]
+        [Authorize(Roles = "Supervisor,Administrator")]
         public async Task<IActionResult> UpdateProfile([FromBody] UserProfileViewModel model)
         {
             if (!ModelState.IsValid)
@@ -77,13 +79,13 @@ namespace EvaluacionApi.Controllers
                 // Actualizar propiedades
                 user.Nombres = model.Nombres;
                 user.Apellidos = model.Apellidos;
-                user.FechaNacimiento = model.FechaNacimiento;
+                user.FechaNacimiento = model.FechaNacimiento.ToUniversalTime();
                 user.Genero = model.Genero;
 
                 var result = await _userManager.UpdateAsync(user);
                 if (result.Succeeded)
                 {
-                    return NoContent(); // 204 No Content indica que la actualización fue exitosa sin devolver datos
+                    return Ok(user); 
                 }
 
                 // Manejar errores de actualización
@@ -96,7 +98,7 @@ namespace EvaluacionApi.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, "Ocurrió un error al actualizar el perfil.");
+                return StatusCode(500, "Ocurrió un error al actualizar el perfil." + ex.Message);
             }
         }
     }

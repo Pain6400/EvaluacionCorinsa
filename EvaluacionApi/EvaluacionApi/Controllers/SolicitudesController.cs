@@ -59,17 +59,10 @@ namespace EvaluacionApi.Controllers
             }
 
             // Obtener el UserId desde los claims
-            var email = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (email == null)
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userId == null)
             {
                 return Unauthorized("Usuario no autenticado.");
-            }
-
-            var user = await _userManager.FindByEmailAsync(email);
-
-            if (user == null)
-            {
-                return Unauthorized("Usuario no Existe.");
             }
 
             // Verificar que ZonaId y TipoSolicitudId existen
@@ -91,7 +84,7 @@ namespace EvaluacionApi.Controllers
                 TipoSolicitudId = model.TipoSolicitudId,
                 ZonaId = model.ZonaId,
                 Observaciones = model.Observaciones,
-                UsuarioId = user.Id, // Asignar el GUID del usuario
+                UsuarioId = userId, // Asignar el GUID del usuario
                 FechaCreacion = DateTime.UtcNow,
                 Aprobada = false
             };
