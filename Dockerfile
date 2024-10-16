@@ -10,4 +10,6 @@ COPY ./EvaluacionApi/. ./EvaluacionApi/
 WORKDIR "/src/EvaluacionApi"
 # Elimina la carpeta de salida si existe
 RUN rm -rf /app/output
-RUN dotnet build "EvaluacionApi.csproj" -c Release -o /app/output
+RUN dotnet build "EvaluacionApi.csproj" -c Release -o /tmp/output
+# Mueve el resultado a la carpeta de destino
+RUN mv /tmp/output /app/output
