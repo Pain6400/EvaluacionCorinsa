@@ -29,7 +29,7 @@ namespace EvaluacionApi.Controllers
         }
 
         // GET: api/Solicitudes
-        [HttpGet]
+        [HttpGet("GetSolicitudes")]
         public async Task<ActionResult<IEnumerable<Solicitud>>> GetSolicitudes()
         {
             return await _context.Solicitudes.Include(s => s.Zona).Include(s => s.TipoSolicitud).ToListAsync();
@@ -50,7 +50,7 @@ namespace EvaluacionApi.Controllers
         }
 
         // POST: api/Solicitudes
-        [HttpPost]
+        [HttpPost("CreateSolicitud")]
         public async Task<ActionResult<Solicitud>> CreateSolicitud([FromBody] CreateSolicitudViewModel model)
         {
             if (!ModelState.IsValid)
