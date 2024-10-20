@@ -51,6 +51,7 @@ namespace EvaluacionApi.Controllers
 
         // POST: api/Solicitudes
         [HttpPost("CreateSolicitud")]
+        [Authorize(Roles = "Supervisor,Administrator")]
         public async Task<ActionResult<Solicitud>> CreateSolicitud([FromBody] CreateSolicitudViewModel model)
         {
             if (!ModelState.IsValid)

@@ -12,16 +12,18 @@ namespace EvaluacionApi.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "Administrator")] // Solo Administradores pueden acceder
+    //[Authorize(Roles = "Administrator")] // Solo Administradores pueden acceder
     public class AdminController : ControllerBase
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly ApplicationDbContext _context;
+        private readonly RoleManager<IdentityRole> _roleManager;
 
-        public AdminController(UserManager<ApplicationUser> userManager, ApplicationDbContext context)
+        public AdminController(UserManager<ApplicationUser> userManager, ApplicationDbContext context, RoleManager<IdentityRole> roleManager)
         {
             _userManager = userManager;
             _context = context;
+            _roleManager = roleManager;
         }
 
         // POST: api/Admin/AssignSupervisor
@@ -91,28 +93,43 @@ namespace EvaluacionApi.Controllers
         [HttpPost("AssignRole")]
         public async Task<IActionResult> AssignRole([FromBody] AssignRoleViewModel model)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
-            var user = await _userManager.FindByEmailAsync(model.Email);
-            if (user == null)
-                return NotFound("Usuario no encontrado.");
-
-            // Verificar si el rol existe
-            var roleExists = await _userManager.IsInRoleAsync(user, model.Role);
-            if (roleExists)
-                return BadRequest("El usuario ya tiene asignado este rol.");
-
-            var result = await _userManager.AddToRoleAsync(user, model.Role);
-            if (result.Succeeded)
-                return Ok("Rol asignado correctamente.");
-
-            // Si ocurre algún error, retornar los detalles
-            foreach (var error in result.Errors)
+            try
             {
-                ModelState.AddModelError(string.Empty, error.Description);
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
+
+                // Buscar al usuario por email
+                var user = await _userManager.FindByEmailAsync(model.Email);
+                if (user == null)
+                    return NotFound("Usuario no encontrado.");
+
+                var role = await _roleManager.FindByIdAsync(model.Role);
+                if (role == null)
+                    return NotFound("El rol especificado no existe.");
+
+                // Verificar si el usuario ya tiene el rol asignado
+                var roleExists = await _userManager.IsInRoleAsync(user, role.Name);
+                if (roleExists)
+                    return BadRequest("El usuario ya tiene asignado este rol.");
+
+                // Asignar el rol al usuario por su nombre
+                var result = await _userManager.AddToRoleAsync(user, role.Name);
+                if (result.Succeeded)
+                    return Ok("Rol asignado correctamente.");
+
+                // Manejar los errores de la operación
+                foreach (var error in result.Errors)
+                {
+                    ModelState.AddModelError(string.Empty, error.Description);
+                }
+                return BadRequest(ModelState);
             }
-            return BadRequest(ModelState);
+            catch (Exception ex)
+            {
+                // Capturar cualquier excepción no manejada
+                return StatusCode(500, $"Error interno del servidor: {ex.Message}");
+            }
         }
+
     }
 }
